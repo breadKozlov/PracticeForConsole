@@ -30,8 +30,9 @@ public class Runner {
 
         bubbleSortToCost(homeAppliances);
 
-
-
+        for (HomeAppliances i: homeAppliances) {
+            System.out.println(i.getName() + " " + i.getCost());
+        }
     }
 
     static <T extends HomeAppliances> void bubbleSortToCost(T[] arr) {
