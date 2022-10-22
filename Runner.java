@@ -1,4 +1,6 @@
-package Chernovik;
+package practice.PracticeForConsole;
+
+import java.util.Scanner;
 
 public class Runner {
 
@@ -26,13 +28,43 @@ public class Runner {
             }
         }
 
-        System.out.println(allPower);
+        System.out.println("Сумма всех мощностей приборов, включенных в розетку: " + allPower + "Вт");
+        System.out.println();
 
-        bubbleSortToCost(homeAppliances);
+        bubbleSortToCost(homeAppliances); // сортировка по цене методом пузырька
 
         for (HomeAppliances i: homeAppliances) {
-            System.out.println(i.getName() + " " + i.getCost());
+            System.out.println(i.getName() + " - " + i.getCost() + "$");
         }
+
+        System.out.println();
+
+        System.out.print("Введите минимальное значение потребляемой мощности: ");
+        int powerFirst = new Scanner(System.in).nextInt();
+        System.out.println();
+        System.out.print("Введите максимальное значение потребляемой мощности: ");
+        int powerLast = new Scanner(System.in).nextInt();
+        System.out.println();
+        System.out.println("Введите диапазон стоимости прибора a и b:");
+        System.out.print("a = ");
+        double costFirst = new Scanner(System.in).nextDouble();
+        System.out.print("b = ");
+        double costLast = new Scanner(System.in).nextDouble();
+        System.out.println();
+
+        int sovpadenie = 0;
+
+        for (HomeAppliances home: homeAppliances) {
+
+            if (home.getPower() >= powerFirst & home.getPower() <= powerLast
+                    & home.getCost() >= costFirst & home.getCost() <= costLast) {
+                System.out.print("Menja zovut - " + home.getName() + ". ");
+                home.whatAreYouDoing();
+                sovpadenie++;
+            }
+        }
+
+        if (sovpadenie == 0) { System.out.println("Takoj pribor ne najden"); }
     }
 
     static <T extends HomeAppliances> void bubbleSortToCost(T[] arr) {

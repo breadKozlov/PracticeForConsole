@@ -1,4 +1,4 @@
-package Chernovik;
+package practice.PracticeForConsole;
 
 public class MultiVarka extends HomeAppliances {
 

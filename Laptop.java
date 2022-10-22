@@ -1,4 +1,4 @@
-package Chernovik;
+package practice.PracticeForConsole;
 
 public class Laptop extends HomeAppliances{
 
