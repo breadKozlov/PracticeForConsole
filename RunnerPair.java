@@ -1,4 +1,4 @@
-package zadachaFive;
+package practice.PracticeForConsole;
 
 class Pair<T,K> {
 
