@@ -1,21 +1,19 @@
 import java.util.ArrayList;
-import java.util.Scanner;
 
 public class Checker {
 
     public static void main(String[] args) {
-
         run();
     }
 
     public static void run() {
-
         int[] arrayNumOfTickets = {2135,3899457,12366312,12365,654123,6323,11,9874,36985214,32145023};
         for (int i: arrayNumOfTickets) {
             System.out.println(checkTickets(i));
         }
     }
 
+    //требуемый метод
     public static boolean checkTickets(int numOfTicket) {
 
         ArrayList<Integer> arrayList = new ArrayList<>();
