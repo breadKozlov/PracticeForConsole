@@ -5,84 +5,90 @@ import java.text.DecimalFormat;
 import java.util.*;
 import java.util.concurrent.*;
 
-public class ArraysReadAndWrite {
+public record ArraysReadAndWrite(int randomOrigin, int randomBound
+        , int originLengthArray, int boundLengthArray) {
 
     public final static String TEXT_FILE_ROAD_1 = "array1.txt";
     public final static String TEXT_FILE_ROAD_2 = "array2.txt";
     public final static String TEXT_FILE_ROAD_3 = "array3.txt";
-    int randomOrigin;
-    int randomBound;
-    int originLengthArray;
-    int boundLengthArray;
-    static ExecutorService executor1 = Executors.newFixedThreadPool(3);
-    static List<Callable<String>> listTasks = new ArrayList<>();
-    static List<Future<String>> outputFuture = new ArrayList<>();
+    private static final ExecutorService executor = Executors.newFixedThreadPool(3);
+    private static final List<Callable<String>> listTasks = new ArrayList<>();
+    private static List<Future<String>> outputFuture = new ArrayList<>();
 
-    public ArraysReadAndWrite(int randomOrigin, int randomBound, int originLengthArray, int boundLengthArray) {
-        this.randomOrigin = randomOrigin;
-        this.randomBound = randomBound;
-        this.originLengthArray = originLengthArray;
-        this.boundLengthArray = boundLengthArray;
+    public static void main(String[] args){
+
+        ArraysReadAndWrite runner = new ArraysReadAndWrite(10, 100, 3, 10);
+        List<String> filesTxt = new ArrayList<>();
+        Collections.addAll(filesTxt, TEXT_FILE_ROAD_1, TEXT_FILE_ROAD_2, TEXT_FILE_ROAD_3);
+        runner.do_Exam10(filesTxt);
     }
 
-    public static void main(String[] args) throws InterruptedException, ExecutionException {
-
-        ArraysReadAndWrite runner = new ArraysReadAndWrite(10,100,3,10);
+    public void do_Exam10(List<String> filesTxt) {
 
         System.out.println("Открываю поток - " + Thread.currentThread().getName());
         System.out.println("Создаю массивы и вывожу их на экран: ");
 
-        List<String> filesTxt = new ArrayList<>();
-        Collections.addAll(filesTxt,TEXT_FILE_ROAD_1,TEXT_FILE_ROAD_2,TEXT_FILE_ROAD_3);
+        Map<String, List<String>> inputForWrite = new HashMap<>();
 
-
-        Map<String,List<String>> input = new HashMap<>();
-        for(String file: filesTxt) {
-            input.put(file,runner.createRandomList());
+        for (String file : filesTxt) {
+            inputForWrite.put(file, this.createRandomList());
         }
+
         System.out.println();
         System.out.println("Записываю их асинхронно в трех потоках:");
 
-        for(Map.Entry<String,List<String>> task: input.entrySet()) {
-            listTasks.add(new WriteMyListCallable(task.getKey(),task.getValue()));
-        }
-        outputFuture = executor1.invokeAll(listTasks);
-        for(Future<String> fut: outputFuture) {
-            System.out.println(fut.get());
-        }
-        listTasks.clear();
-        outputFuture.clear();
+        this.runInExecutor(listTasks, inputForWrite);
 
         System.out.println();
-
         System.out.print("Считываю массивы асинхронно в трех потоках из трех файлов\n" +
-        " и вывожу результаты на экран:");
+                " и вывожу результаты на экран:");
 
-        for (String file: filesTxt) {
-            listTasks.add(new ReadMyListCallable(file));
-        }
-        outputFuture = executor1.invokeAll(listTasks);
-        for(Future<String> fut: outputFuture) {
-            System.out.println(fut.get());
-        }
-        executor1.shutdown();
-        listTasks.clear();
-        outputFuture.clear();
-
+        this.runInExecutor(listTasks, filesTxt);
+        executor.shutdown();
         System.out.println("Закрываю поток - " + Thread.currentThread().getName());
     }
 
-    public void do_Exam10() {
+    public void runInExecutor(List<Callable<String>> tasks, Map<String, List<String>> input) {
 
+        for (Map.Entry<String, List<String>> task : input.entrySet()) {
+            tasks.add(new WriteMyListCallable(task.getKey(), task.getValue()));
+        }
+        try {
+            outputFuture = executor.invokeAll(tasks);
+            for (Future<String> fut : outputFuture) {
+                System.out.println(fut.get());
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        tasks.clear();
+        outputFuture.clear();
+    }
+
+    public void runInExecutor(List<Callable<String>> tasks, List<String> filesTxt) {
+
+        for (String file : filesTxt) {
+            tasks.add(new ReadMyListCallable(file));
+        }
+        try {
+            outputFuture = executor.invokeAll(tasks);
+            for (Future<String> fut : outputFuture) {
+                System.out.println(fut.get());
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        tasks.clear();
+        outputFuture.clear();
     }
 
     public List<String> createRandomList() {
 
-        int n = (int)((Math.random() * (boundLengthArray - originLengthArray + 1) + originLengthArray));
+        int n = (int) ((Math.random() * (boundLengthArray - originLengthArray + 1) + originLengthArray));
         int[] array = new int[n];
         List<String> list = new ArrayList<>();
-        for(int i = 0; i < array.length; i++) {
-            array[i] = new Random().nextInt(randomOrigin,randomBound);
+        for (int i = 0; i < array.length; i++) {
+            array[i] = new Random().nextInt(randomOrigin, randomBound);
             System.out.print(array[i] + " ");
             list.add(Integer.toString(array[i]));
         }
