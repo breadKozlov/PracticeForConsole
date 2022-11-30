@@ -10,22 +10,58 @@ public class ArraysReadAndWrite {
     public final static String TEXT_FILE_ROAD_1 = "array1.txt";
     public final static String TEXT_FILE_ROAD_2 = "array2.txt";
     public final static String TEXT_FILE_ROAD_3 = "array3.txt";
+    int randomOrigin;
+    int randomBound;
+    int originLengthArray;
+    int boundLengthArray;
+    static ExecutorService executor1 = Executors.newFixedThreadPool(3);
+    static List<Callable<String>> listTasks = new ArrayList<>();
+    static List<Future<String>> outputFuture = new ArrayList<>();
+
+    public ArraysReadAndWrite(int randomOrigin, int randomBound, int originLengthArray, int boundLengthArray) {
+        this.randomOrigin = randomOrigin;
+        this.randomBound = randomBound;
+        this.originLengthArray = originLengthArray;
+        this.boundLengthArray = boundLengthArray;
+    }
 
     public static void main(String[] args) throws InterruptedException, ExecutionException {
 
-        ArraysReadAndWrite runner = new ArraysReadAndWrite();
-        List<String> array1 = runner.createRandomList();
-        List<String> array2 = runner.createRandomList();
-        List<String> array3 = runner.createRandomList();
+        ArraysReadAndWrite runner = new ArraysReadAndWrite(10,100,3,10);
+
+        System.out.println("Открываю поток - " + Thread.currentThread().getName());
+        System.out.println("Создаю массивы и вывожу их на экран: ");
+
+        List<String> filesTxt = new ArrayList<>();
+        Collections.addAll(filesTxt,TEXT_FILE_ROAD_1,TEXT_FILE_ROAD_2,TEXT_FILE_ROAD_3);
 
 
-        ExecutorService executor1 = Executors.newFixedThreadPool(3);
-        ExecutorService executor2 = Executors.newFixedThreadPool(1);
-        List<Callable<String>> listTasks = new ArrayList<>();
-        Collections.addAll(listTasks, new WriteMyListCallable(TEXT_FILE_ROAD_1,array1)
-                , new WriteMyListCallable(TEXT_FILE_ROAD_2,array2), new WriteMyListCallable(TEXT_FILE_ROAD_3, array3));
+        Map<String,List<String>> input = new HashMap<>();
+        for(String file: filesTxt) {
+            input.put(file,runner.createRandomList());
+        }
+        System.out.println();
+        System.out.println("Записываю их асинхронно в трех потоках:");
 
-        List<Future<String>> outputFuture = executor1.invokeAll(listTasks);
+        for(Map.Entry<String,List<String>> task: input.entrySet()) {
+            listTasks.add(new WriteMyListCallable(task.getKey(),task.getValue()));
+        }
+        outputFuture = executor1.invokeAll(listTasks);
+        for(Future<String> fut: outputFuture) {
+            System.out.println(fut.get());
+        }
+        listTasks.clear();
+        outputFuture.clear();
+
+        System.out.println();
+
+        System.out.print("Считываю массивы асинхронно в трех потоках из трех файлов\n" +
+        " и вывожу результаты на экран:");
+
+        for (String file: filesTxt) {
+            listTasks.add(new ReadMyListCallable(file));
+        }
+        outputFuture = executor1.invokeAll(listTasks);
         for(Future<String> fut: outputFuture) {
             System.out.println(fut.get());
         }
@@ -33,26 +69,20 @@ public class ArraysReadAndWrite {
         listTasks.clear();
         outputFuture.clear();
 
-        Collections.addAll(listTasks,new ReadMyListCallable(TEXT_FILE_ROAD_1),new ReadMyListCallable(TEXT_FILE_ROAD_2),
-                new ReadMyListCallable(TEXT_FILE_ROAD_3));
+        System.out.println("Закрываю поток - " + Thread.currentThread().getName());
+    }
 
-        outputFuture = executor2.invokeAll(listTasks);
-        for(Future<String> fut: outputFuture) {
-            System.out.println(fut.get());
-        }
-        executor2.shutdown();
-
-        System.out.println("Close thread " + Thread.currentThread().getName());
+    public void do_Exam10() {
 
     }
 
     public List<String> createRandomList() {
 
-        int n = (int)((Math.random() * 8) + 3);
+        int n = (int)((Math.random() * (boundLengthArray - originLengthArray + 1) + originLengthArray));
         int[] array = new int[n];
         List<String> list = new ArrayList<>();
         for(int i = 0; i < array.length; i++) {
-            array[i] = new Random().nextInt(10,100);
+            array[i] = new Random().nextInt(randomOrigin,randomBound);
             System.out.print(array[i] + " ");
             list.add(Integer.toString(array[i]));
         }
@@ -76,6 +106,7 @@ class WriteMyListCallable implements Callable<String> {
 
         File file = new File(name);
         String result = null;
+
         try(BufferedWriter bw = new BufferedWriter(new FileWriter(file))) {
             bw.write(inputList.size() + "\n");
             for (String num: inputList) {
@@ -91,45 +122,38 @@ class WriteMyListCallable implements Callable<String> {
     }
 }
 
-class ReadMyListCallable implements Callable<String> {
-
-
-    private final String nameFile;
-    public ReadMyListCallable(String nameFile) {
-        this.nameFile = nameFile;
-    }
+record ReadMyListCallable(String nameFile) implements Callable<String> {
 
     @Override
     public String call() {
 
         File file = new File(nameFile);
         List<Integer> list = new ArrayList<>();
-        int numOfElements = 0;
-        try(BufferedReader br = new BufferedReader(new FileReader(file))) {
+        int numOfElements;
+        StringBuilder result = new StringBuilder("\n");
+
+        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
 
             String line;
             numOfElements = Integer.parseInt(br.readLine());
             while ((line = br.readLine()) != null) {
                 list.add(Integer.parseInt(line));
             }
-            System.out.println("Зачитал массив из файла: " + file.getPath() + ", и вывожу его на экран: ");
-            for (Integer i: list) {
-                System.out.print(i + " ");
+            result.append("Зачитал массив из файла: ").append(file.getPath()).append(", и вывожу его на экран: \n");
+            for (Integer i : list) {
+                result.append(i).append(" ");
             }
-
-            System.out.println();
+            result.append("\n");
             int sum = list.stream().reduce(0, Integer::sum);
-            System.out.println("Сумма всех элементов данного массива равна: " + sum + "\n"
-                    + "Количество элементов в массиве: " + numOfElements);
+            result.append("Сумма всех элементов данного массива равна: ").append(sum).append("\n")
+                    .append("Количество элементов в массиве: ").append(numOfElements).append("\n");
             double average = list.stream().mapToInt(s -> s).average().orElseThrow();
             String aver = new DecimalFormat("##.##").format(average);
-            System.out.printf("Среднее арифметическое: %s\n",aver);
+            result.append("Среднее арифметическое: ").append(aver).append("\n");
         } catch (Exception ex) {
             ex.printStackTrace();
         }
-
-
-
-        return Thread.currentThread().getName() + " отработал.";
+        result.append(Thread.currentThread().getName()).append(" отработал.");
+        return result.toString();
     }
 }
